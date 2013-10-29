@@ -1,48 +1,41 @@
 #!/bin/bash
+# This script installs an SAP Sybase product in the current environement.
+# It does not create an instance of any server, it justs executes 
+# setup.bin into the right folder
+
+# Distribution files are often untared into a specific filesystem mounted on /sybase
+#  /sybase/<PRODUCT>/<ebf version>/
+#  For instance /sybase/ASE157/ebf21456/
 
 . /etc/bash.bashrc
 
 main() {
 
-   ###
-   ###  ebf or distrib files must be extracted at a specific location
-   ###  /sybase/PRODUCT/ebfversion/
    find /sybase -name setup.bin | grep -v sysam | while read setup_file ; do
 
       printLog "Found ${setup_file}" 
       ebf_dir=$(dirname ${setup_file} )
       printLog "   EBF dir is : ${ebf_dir}"
-   
       PRODUCT=$( basename $(dirname ${ebf_dir} ) )
       printLog "   PRODUCT  is : ${PRODUCT}"
-   
+      #attempts to locate an template resource file, sometimes it is alongside
       res_file=${ebf_dir}/sample_response.txt
       [[ ! -f ${res_file} ]] && res_file=${ebf_dir}/installer.properties
       [[ ! -f ${res_file} ]] && printLog "   No sample resource file, skipping" && continue
-   
-      sed -e "s:USER_INSTALL_DIR=.*:USER_INSTALL_DIR=/sybase/${PRODUCT}:" \
-	      -e 's/SY_CONFIG_ASE_SERVER=true/SY_CONFIG_ASE_SERVER=false/' \
-          -e 's/SY_CONFIG_BS_SERVER=true/SY_CONFIG_BS_SERVER=false/'   \
-          -e 's/SY_CONFIG_XP_SERVER=true/SY_CONFIG_XP_SERVER=false/'   \
-          -e 's/SY_CONFIG_JS_SERVER=true/SY_CONFIG_JS_SERVER=false/'   \
-          -e 's/SY_CONFIG_SM_SERVER=true/SY_CONFIG_SM_SERVER=false/'   \
-          -e 's/SY_CONFIG_WS_SERVER=true/SY_CONFIG_WS_SERVER=false/'   \
-          -e 's/SY_CONFIG_SCC_SERVER=true/SY_CONFIG_SCC_SERVER=false/'   \
-          -e 's/SYSAM_NOTIFICATION_ENABLE=.*/SYSAM_NOTIFICATION_ENABLE=false/' \
-		  -e 's/START_SCC_SERVER=.*/START_SCC_SERVER=no/' \
-		  -e 's/CONFIG_SCC_CSI_SCCADMIN_PWD=.*/CONFIG_SCC_CSI_SCCADMIN_PWD=SAPSYBASE/' \
-		  -e 's/CONFIG_SCC_CSI_UAFADMIN_PWD=.*/CONFIG_SCC_CSI_UAFADMIN_PWD=SAPSYBASE/' \
-		  -e 's/USER_INPUT_RESULTS:.*/USER_INPUT_RESULTS: \\"Oracle\\",\\"\\",\\"\\"/' \
-          ${res_file} > /sybase/install_${PRODUCT}.rs
+      
+      sedexp=$(grep -v "^#" ${HOME}/install/replace_answers.txt | \
+        awk -F "#" '{ print "s#^" $1 ".*#" $1 " " $2 "#;"'}  | tr -d "\n" )
 
-   	   #Install distrib
-       printLog "Executing resource file /sybase/install_${PRODUCT}.rs"
-	   export SYBASE=/sybase/${PRODUCT}
-       ${setup_file} -i silent -f /sybase/install_${PRODUCT}.rs -DAGREE_TO_SYBASE_LICENSE=true > /sybase/install_${PRODUCT}.log 2>&1
+      sed -e "${sedexp}" ${res_file} > ${HOME}/install/install_${PRODUCT}.rs
+  
+       #Install distrib
+       printLog "Executing resource file ${HOME}/install/install_${PRODUCT}.rs"
+       export SYBASE=/sybase/${PRODUCT}
+       ${setup_file} -i silent -f ${HOME}/install/install_${PRODUCT}.rs -DAGREE_TO_SYBASE_LICENSE=true > ${HOME}/install/install_${PRODUCT}.log 2>&1
 
-	   #Remove installation files
-	   [[ $? -eq 0 ]] && printLog "${PRODUCT} installed ! removing setup files ${ebf_dir}" && rm -rf ${ebf_dir} 
-	
+       #Remove installation files
+       [[ $? -eq 0 ]] && printLog "${PRODUCT} installed ! removing setup files ${ebf_dir}" && rm -rf ${ebf_dir} 
+       
    done
    
    #Install SP01.LP03
@@ -74,7 +67,7 @@ main() {
 }
 
 printLog(){
-   echo ${1} | tee -a /sybase/install.log
+   echo ${1} | tee -a ${HOME}/install/install_all_distribs.log
 }
 
 main 

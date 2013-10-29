@@ -1,0 +1,16 @@
+# These keywords are replaced in the template for silent install of ASE, RS, IQ, RAO, and ESP
+#
+# For all installs, standard replacement occurs for keyword USER_INSTALL_DIR
+SY_CONFIG_ASE_SERVER=#false
+SY_CONFIG_BS_SERVER=#false
+SY_CONFIG_XP_SERVER=#false
+SY_CONFIG_JS_SERVER=#false
+SY_CONFIG_SM_SERVER=#false
+SY_CONFIG_WS_SERVER=#false
+SY_CONFIG_SCC_SERVER=#false
+SYSAM_NOTIFICATION_ENABLE=#false
+START_SCC_SERVER=#no
+CONFIG_SCC_CSI_SCCADMIN_PWD=#$(<~/.scc)
+CONFIG_SCC_CSI_UAFADMIN_PWD=#$(<~/.uaf)
+#For RAO
+USER_INPUT_RESULTS:#\\"Oracle\\",\\"\\",\\"\\"
